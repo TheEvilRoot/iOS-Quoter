@@ -2,8 +2,11 @@ import UIKit
 
 class ViewController: UIViewController {
 
+    var total: Int = -1
     var currentID: Int = 0
+    var currentQuote: Quote? = nil
     
+    @IBOutlet weak var loadingIndicator: UIActivityIndicatorView!
     @IBOutlet weak var quoteView: UITextView!
     @IBOutlet weak var authorView: UILabel!
     @IBOutlet weak var adderView: UILabel!
@@ -13,38 +16,81 @@ class ViewController: UIViewController {
         }
     }
     @IBAction func btnRandom(_ sender: UIButton) {
-        loadRandomQuote()
+        if currentID != -1 {
+            loadRandomQuote()
+        }
     }
     @IBAction func btnNext(_ sender: UIButton) {
-       loadQuoteByID(currentID + 1)
+        if currentID + 1 <= total && currentID != -1 {
+            loadQuoteByID(currentID + 1)
+        }
     }
     
     @IBAction func btnGoto(_ sender: UIButton) {
-        let alertController = UIAlertController(title: "Номер цитаты", message: "Введите число - ID цитаты", preferredStyle: .alert)
-        alertController.addTextField { (textField) in
-            textField.placeholder = "123"
-        }
-        alertController.addAction(UIAlertAction(title: "Перейти", style: .default) { (_) in
-            if let id: Int = Int((alertController.textFields?[0].text)!) {
-                self.loadQuoteByID(id)
-            }else{
-                self.displayAlert(title: "Ошибка", message: "Неверное число", actionText: "Окей")
+        if currentID != -1 {
+            let alertController = UIAlertController(title: "Номер цитаты", message: "Введите число - ID цитаты", preferredStyle: .alert)
+            alertController.addTextField { (textField) in
+                textField.placeholder = "123"
             }
-        })
-        alertController.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        self.present(alertController, animated: true, completion: nil)
+            alertController.addAction(UIAlertAction(title: "Перейти", style: .default) { (_) in
+                if let id: Int = Int((alertController.textFields?[0].text)!) {
+                    self.loadQuoteByID(id)
+                }else{
+                    self.displayAlert(title: "Ошибка", message: "Неверное число", actionText: "Окей")
+                }
+            })
+            alertController.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+            self.present(alertController, animated: true, completion: nil)
+        }
+    }
+    @IBAction func nbShare(_ sender: UIBarButtonItem) {
+        if currentQuote != nil {
+            shareQuote(author: currentQuote!.author,quoteText: currentQuote!.text,copyright: true)
+        }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadRandomQuote()
+        loadingIndicator.startAnimating()
+        loadingIndicator.hidesWhenStopped = true
+        loadData {
+            DispatchQueue.main.async {
+                self.loadingIndicator.stopAnimating()
+            }
+            print(self.total)
+            self.loadRandomQuote()
+        }
     }
 
+    func loadData(_ onLoad: @escaping () -> Void) {
+        req(params: ["task":"GET", "mode": "total"], onLoad: { json in
+            print(json)
+            if let rError = json["error"] as? Bool {
+                if !rError {
+                    if let data = json["data"] as? [String: Int] {
+                        self.total = data["count"]!
+                        return onLoad()
+                    }
+                }
+            }
+            self.displayRetry(onLoad)
+        }) { _ in
+            self.displayRetry(onLoad)
+        }
+    }
+
+    func displayRetry(_ onRetry: @escaping () -> Void) {
+        self.displayAlert(title: "Ошибка", message: "Во время загрузки необходимых для работы приложения данных произошла ошибка", actionText: "Еще раз", action: { alert in
+            self.loadData(onRetry)
+        })
+    }
+    
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
     }
+    
 
-    func getQuote(params parameters: [String: String], onLoad: @escaping ([String: Any]) -> Void, onError: @escaping (Optional<Error>) -> Void) {
+    func req(params parameters: [String: String], onLoad: @escaping ([String: Any]) -> Void, onError: @escaping (Optional<Error>) -> Void) {
         let url = URL(string: "http://52.48.142.75:8888/backend/quoter")!
         let session = URLSession.shared
         var request = URLRequest(url: url)
@@ -71,7 +117,7 @@ class ViewController: UIViewController {
     }
     
     func loadRandomQuote() {
-        getQuote(params: ["task": "GET", "mode": "rand"], onLoad: { json in
+        req(params: ["task": "GET", "mode": "rand"], onLoad: { json in
             print(json)
             if let data: [String: Any] = json["data"] as? [String: Any] {
                 self.displayQuoteFromData(data)
@@ -88,7 +134,7 @@ class ViewController: UIViewController {
     }
     
     func loadQuoteByID(_ id: Int) {
-        getQuote(params: ["task": "GET", "mode": "pos", "pos": String(id)], onLoad: { json in
+        req(params: ["task": "GET", "mode": "pos", "pos": String(id)], onLoad: { json in
             print(json)
             if let data: [String: Any] = json["data"] as? [String: Any] {
                 self.displayQuoteFromData(data)
@@ -107,14 +153,21 @@ class ViewController: UIViewController {
     func displayQuoteFromData(_ data: [String: Any]) {
         self.currentID = data["id"] as! Int
         DispatchQueue.main.async {
+            self.currentQuote = Quote()
             if let quote = data["quote"] as? String {
                 self.quoteView.text = quote
+                self.currentQuote?.text = quote
             }
             if let author = data["author"] as? String {
                 self.authorView.text = "Автор: \(author)"
+                self.currentQuote?.author = author
             }
             if let adder = data["adder"] as? String {
                 self.adderView.text = "Добавил цитату: \(adder)"
+                self.currentQuote?.adder = adder
+            }
+            if let id = data["id"] as? Int {
+                self.currentQuote?.id = id
             }
         }
     }
@@ -135,9 +188,13 @@ class ViewController: UIViewController {
         }
     }
     
-    func displayAlert(title: String, message: String, actionText: String) {
+    func displayAlert(title: String, message: String, actionText: String, action: ((UIAlertController) -> Void)? = nil) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertControllerStyle.alert)
-        alert.addAction(UIAlertAction(title: actionText, style: .default, handler: nil))
+        alert.addAction(UIAlertAction(title: actionText, style: .default, handler: { _ in
+            if action != nil {
+                action!(alert)
+            }
+        }))
         self.present(alert, animated: true, completion: nil)
     }
     
@@ -149,5 +206,21 @@ class ViewController: UIViewController {
         return args.joined(separator: "&")
     }
     
+    func shareQuote(author: String, quoteText: String, copyright: Bool) {
+        let text = "\(quoteText)\n(c)\(author)\(copyright ? "\n\nQuoter for iOS" : "")"
+        let textToShare = [ text ]
+        let activityViewController = UIActivityViewController(activityItems: textToShare, applicationActivities: nil)
+        activityViewController.popoverPresentationController?.sourceView = self.view
+        activityViewController.excludedActivityTypes = [ UIActivityType.airDrop, UIActivityType.postToFacebook ]
+        self.present(activityViewController, animated: true, completion: nil)
+    }
+    
+}
+
+class Quote {
+    var id: Int = 0
+    var author: String = ""
+    var adder: String = ""
+    var text: String = ""
 }
 
