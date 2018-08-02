@@ -26,8 +26,8 @@
                                 </textAttributes>
                                 <items>
                                     <navigationItem title="Quoter" largeTitleDisplayMode="always" id="JBa-ed-EBh">
-                                        <barButtonItem key="leftBarButtonItem" systemItem="bookmarks" id="m0P-1q-oKv"/>
-                                        <barButtonItem key="rightBarButtonItem" systemItem="reply" id="27J-qe-AKp">
+                                        <barButtonItem key="leftBarButtonItem" systemItem="add" id="m0P-1q-oKv"/>
+                                        <barButtonItem key="rightBarButtonItem" systemItem="action" id="27J-qe-AKp">
                                             <connections>
                                                 <action selector="nbShare:" destination="BYZ-38-t0r" id="KCr-7m-Ohm"/>
                                             </connections>
@@ -121,7 +121,6 @@
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                     </view>
-                    <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" prompted="NO"/>
                     <connections>
                         <outlet property="adderView" destination="cN0-eb-Xnc" id="FZl-f4-pOf"/>
                         <outlet property="authorView" destination="9f9-E5-ike" id="l6i-Jn-FTl"/>

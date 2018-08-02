@@ -10,6 +10,7 @@ class ViewController: UIViewController {
     @IBOutlet weak var quoteView: UITextView!
     @IBOutlet weak var authorView: UILabel!
     @IBOutlet weak var adderView: UILabel!
+    
     @IBAction func btnPrev(_ sender: UIButton) {
         if currentID - 1 > 0 {
             loadQuoteByID(currentID - 1)
@@ -80,9 +81,11 @@ class ViewController: UIViewController {
     }
 
     func displayRetry(_ onRetry: @escaping () -> Void) {
-        self.displayAlert(title: "Ошибка", message: "Во время загрузки необходимых для работы приложения данных произошла ошибка", actionText: "Еще раз", action: { alert in
+        let alert = UIAlertController(title: "Ошибка", message: "Во время загрузки необходимых для работы приложения данных произошла ошибка", preferredStyle: UIAlertControllerStyle.alert)
+        alert.addAction(UIAlertAction(title: "Повторить", style: .default, handler: { _ in
             self.loadData(onRetry)
-        })
+        }))
+        self.present(alert, animated: true, completion: nil)
     }
     
     override func didReceiveMemoryWarning() {
