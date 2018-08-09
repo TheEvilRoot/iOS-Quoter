@@ -66,6 +66,9 @@ class ViewController: UIViewController {
             }
             alertController.addAction(UIAlertAction(title: "Перейти", style: .default) { (_) in
                 if let id: Int = Int((alertController.textFields?[0].text)!) {
+                    if id < 1 || id > self.api.totalCount {
+                        return self.displayAlert(title: "Ошибка", message: "Неверное число", actionText: "Окей")
+                    }
                     self.api.loadQuoteByID(id, onLoad: { quote in
                         self.api.currentQuote = quote
                         self.displayQuote(quote)

@@ -128,17 +128,14 @@ class QuoterAPI {
         request.httpBody = args.data(using: .utf8)
         print("Requesting \(url)?\(args)")
         let task = session.dataTask(with: request as URLRequest, completionHandler: { data, response, error in
-            guard error == nil else {
-                return
-            }
-            guard let data = data else {
-                return
+            guard let data = data, error == nil else {
+                return onError(.none)
             }
             do {
                 if let json = try JSONSerialization.jsonObject(with: data, options: .mutableContainers) as? [String: Any] {
                     onLoad(json)
                 }else{
-                    onError(Optional<Error>.none)
+                    onError(.none)
                 }
             } catch let error {
                 onError(error)
